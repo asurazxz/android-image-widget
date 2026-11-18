@@ -1,0 +1,22 @@
+<resources>
+    <string name="appearance_title">Appearance</string>
+    <string name="appearance_dialog_wallpaper">Wallpaper colors</string>
+    <string name="appearance_dialog_gallery_default">Gallery Shuffle colors</string>
+    <string name="appearance_dialog_custom">Custom color</string>
+    <string name="appearance_dialog_apply">Apply</string>
+    <string name="appearance_dialog_hue">Hue</string>
+    <string name="appearance_dialog_saturation">Saturation</string>
+    <string name="appearance_dialog_brightness">Brightness</string>
+    <string name="appearance_dialog_degrees">%1$d°</string>
+    <string name="appearance_dialog_percent">%1$d%%</string>
+    <string name="appearance_dialog_hex">Hex color</string>
+    <string name="appearance_dialog_invalid_hex">Enter a six-digit hex color, such as #22644F.</string>
+    <string name="appearance_dialog_preview">Preview</string>
+    <string name="appearance_dialog_preview_button">Primary action</string>
+    <string name="appearance_dialog_preview_recovery">Widget recovery card</string>
+    <string name="appearance_dialog_forest">Forest green</string>
+    <string name="appearance_dialog_ocean">Ocean blue</string>
+    <string name="appearance_dialog_plum">Plum purple</string>
+    <string name="appearance_dialog_rose">Rose pink</string>
+    <string name="appearance_dialog_amber">Amber orange</string>
+</resources>

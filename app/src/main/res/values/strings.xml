@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">Gallery Shuffle</string>
+    <string name="widget_name">Gallery Shuffle photo</string>
+    <string name="widget_description">Shuffle photos from your local gallery.</string>
+    <string name="widget_picker_sample_photo">Sample mountain lake landscape</string>
+    <string name="appearance_save_error">Couldn’t save your appearance. Please try again.</string>
+    <string name="widget_picker_instructions">Touch and hold an empty space on your home screen, open Widgets, and choose %1$s.</string>
+    <string name="photo_open_error">Unable to open the original photo.</string>
+    <string name="widget_preview_photo">Open photo preview</string>
+    <string name="photo_preview">Photo preview</string>
+    <string name="photo_preview_shuffle">Shuffle</string>
+    <string name="photo_preview_open_original">Open original</string>
+    <string name="photo_preview_settings">Widget settings</string>
+    <string name="widget_allow_full_access">Allow full photo access</string>
+    <string name="widget_allow_access_short">Allow access</string>
+    <string name="widget_setup_photos">Set up your photos</string>
+    <string name="widget_choose_photos_short">Choose photos</string>
+    <string name="widget_photo_unavailable">Photo unavailable</string>
+    <string name="widget_loading">Loading photo…</string>
+    <string name="widget_temporarily_unavailable">Temporarily unavailable\nOpen settings</string>
+    <string name="widget_open_recovery">Widget temporarily unavailable. Open widget settings.</string>
+</resources>

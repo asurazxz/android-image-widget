@@ -1,0 +1,5 @@
+<resources>
+    <dimen name="widget_loading_radius">@android:dimen/system_app_widget_background_radius</dimen>
+    <color name="widget_loading_surface">@android:color/system_neutral1_50</color>
+    <color name="widget_loading_text">@android:color/system_neutral1_900</color>
+</resources>

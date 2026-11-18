@@ -1,0 +1,5 @@
+<resources>
+    <dimen name="widget_loading_radius">20dp</dimen>
+    <color name="widget_loading_surface">#F4F8F4</color>
+    <color name="widget_loading_text">#19201B</color>
+</resources>

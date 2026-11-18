@@ -1,0 +1,4 @@
+<resources>
+    <color name="widget_loading_surface">@android:color/system_neutral1_900</color>
+    <color name="widget_loading_text">@android:color/system_neutral1_50</color>
+</resources>

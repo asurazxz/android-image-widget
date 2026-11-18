@@ -1,0 +1,92 @@
+package dev.localgallery.data
+
+import android.content.Context
+import androidx.room.Room
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class WidgetDatabaseTest {
+    @Test
+    fun widgetConfigurationAndShuffleStateSurviveCloseAndReopen() = runBlocking {
+        val context = appContext()
+        val name = "widget-persistence-test.db"
+        context.deleteDatabase(name)
+
+        val expected = WidgetRecord(
+            appWidgetId = 41,
+            entireGallery = false,
+            selectedAlbums = listOf("primary:42", "sdcard:42"),
+            displayMode = "FIT",
+            rotationMinutes = 30,
+            preferredViewer = "example.viewer",
+            currentUri = "content://media/primary/images/media/7",
+            currentMime = "image/jpeg",
+            remaining = listOf("content://media/primary/images/media/8"),
+            seen = listOf("content://media/primary/images/media/7"),
+            cycle = 3,
+            revision = 12,
+            nextDueAt = 1_900_000_000_000,
+            lastAutomaticAt = 1_899_999_970_000,
+        )
+
+        try {
+            val firstOpen = open(context, name)
+            try {
+                val database = firstOpen
+                database.widgets().put(expected)
+            } finally {
+                firstOpen.close()
+            }
+
+            val secondOpen = open(context, name)
+            try {
+                val database = secondOpen
+                assertEquals(expected, database.widgets().get(expected.appWidgetId))
+            } finally {
+                secondOpen.close()
+            }
+        } finally {
+            context.deleteDatabase(name)
+        }
+    }
+
+    @Test
+    fun deletingOneWidgetPreservesOtherWidgetRows() = runBlocking {
+        val context = appContext()
+        val name = "widget-delete-test.db"
+        context.deleteDatabase(name)
+
+        try {
+            val database = open(context, name)
+            try {
+                val dao = database.widgets()
+                dao.put(WidgetRecord(appWidgetId = 1, currentUri = "content://photo/1"))
+                dao.put(WidgetRecord(appWidgetId = 2, currentUri = "content://photo/2"))
+                dao.put(WidgetRecord(appWidgetId = 3, currentUri = "content://photo/3"))
+
+                assertNotNull(dao.get(1))
+                dao.delete(2)
+
+                assertEquals(setOf(1, 3), dao.all().map { it.appWidgetId }.toSet())
+                assertEquals("content://photo/1", dao.get(1)?.currentUri)
+                assertEquals("content://photo/3", dao.get(3)?.currentUri)
+            } finally {
+                database.close()
+            }
+        } finally {
+            context.deleteDatabase(name)
+        }
+    }
+
+    private fun appContext(): Context =
+        InstrumentationRegistry.getInstrumentation().targetContext
+
+    private fun open(context: Context, name: String): WidgetDatabase =
+        Room.databaseBuilder(context, WidgetDatabase::class.java, name).build()
+}
