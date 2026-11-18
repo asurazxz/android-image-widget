@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.Preferences
@@ -32,6 +33,7 @@ import androidx.glance.action.clickable
 import androidx.glance.appwidget.*
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.currentState
 import androidx.glance.layout.*
 import androidx.glance.semantics.contentDescription
@@ -41,6 +43,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.color.ColorProvider
+import dev.localgallery.data.DEFAULT_FIT_BACKGROUND_COLOR
 import dev.localgallery.data.WidgetDatabase
 import dev.localgallery.data.WidgetRecord
 import dev.localgallery.permissions.PhotoAccess
@@ -55,13 +58,13 @@ import android.graphics.Bitmap
 
 internal val WidgetRenderGenerationKey = longPreferencesKey("render_generation")
 
-private data class RenderKey(val generation: Long, val width: Float, val height: Float)
+private data class RenderKey(val generation: Long, val size: IntSize)
 internal data class WidgetFrame(val record: WidgetRecord?, val bitmap: Bitmap?)
 private data class KeyedFrame(val key: RenderKey, val frame: WidgetFrame)
 
 class PhotoWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_loading) {
     override val stateDefinition = PreferencesGlanceStateDefinition
-    override val sizeMode = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) SizeMode.Exact else SizeMode.Single
+    override val sizeMode = SizeMode.Exact
 
     override suspend fun providePreview(context: Context, widgetCategory: Int) {
         provideContent { PhotoWidgetPickerPreview() }
@@ -102,8 +105,8 @@ class PhotoWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_loading) {
                     else AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 110).coerceAtLeast(110)
                 val height = options.getInt(if (landscape) AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT
                     else AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 110).coerceAtLeast(110)
-                val tile = legacyWidgetTile(DpSize(width.dp, height.dp), context.resources.displayMetrics.density,
-                    colors.primaryContainer)
+                val size = DpSize(width.dp, height.dp)
+                val tile = legacyWidgetTile(size, widgetPreviewSize(context, options, size), colors.primaryContainer)
                 setImageViewBitmap(R.id.widget_loading_backdrop, tile)
                 setViewVisibility(R.id.widget_loading_backdrop, View.VISIBLE)
                 setInt(R.id.widget_loading_root, "setBackgroundColor", android.graphics.Color.TRANSPARENT)
@@ -121,16 +124,21 @@ class PhotoWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_loading) {
         val appearances = GalleryAppearanceSettings.observe(context)
         val initialAppearance = appearances.first()
         WidgetController(context).reconcileForRender(widgetId)
-        val initialFrame = loadWidgetFrame(context, widgetId)
+        val options = AppWidgetManager.getInstance(context).getAppWidgetOptions(widgetId)
+        val initialSize = widgetPreviewSize(context, options)
+        val initialPreferences = getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
+        val initialKey = RenderKey(initialPreferences[WidgetRenderGenerationKey] ?: 0L, initialSize)
+        val initialFrame = loadWidgetFrame(context, widgetId, initialSize)
         provideContent {
             val generation = currentState<Preferences>()[WidgetRenderGenerationKey] ?: 0L
             val size = LocalSize.current
-            val key = RenderKey(generation, size.width.value, size.height.value)
+            val pixels = widgetPreviewSize(context, LocalAppWidgetOptions.current, size)
+            val key = RenderKey(generation, pixels)
             val loaded by produceState(
-                initialValue = KeyedFrame(key, initialFrame),
+                initialValue = KeyedFrame(initialKey, initialFrame),
                 key1 = key,
             ) {
-                if (value.key != key) value = KeyedFrame(key, loadWidgetFrame(context, widgetId))
+                if (value.key != key) value = KeyedFrame(key, loadWidgetFrame(context, widgetId, pixels))
             }
             val frame = loaded.frame.takeIf { loaded.key == key }
             val full = PhotoPermissionManager(context).status() == PhotoAccess.FULL
@@ -151,17 +159,17 @@ class PhotoWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_loading) {
             val bitmap = frame?.bitmap
             val record = frame?.record
             val hasPhoto = full && bitmap != null && record?.currentUri != null
-            val surface = if (hasPhoto) ColorProvider(day = PhotoBackdrop, night = PhotoBackdrop)
+            val fit = record?.displayMode == "FIT"
+            val backdrop = if (record?.displayMode == "FIT") Color(record.fitBackgroundColor) else PhotoBackdrop
+            val surface = if (hasPhoto) ColorProvider(day = backdrop, night = backdrop)
                 else recoverySurface
             val background = GlanceModifier.fillMaxSize().appWidgetBackground()
             val widgetShape = if (legacyHost) background else background.background(surface)
                 .cornerRadius(android.R.dimen.system_app_widget_background_radius)
-            val density = context.resources.displayMetrics.density
-            val fit = record?.displayMode == "FIT"
             Box(widgetShape) {
                 if (full && bitmap != null && record?.currentUri != null) {
-                    val tile = if (legacyHost) remember(bitmap, size, density, fit) {
-                        legacyWidgetTile(size, density, PhotoBackdrop, bitmap, fit)
+                    val tile = if (legacyHost) remember(bitmap, size, pixels, backdrop, fit) {
+                        legacyWidgetTile(size, pixels, backdrop, bitmap, fit)
                     } else bitmap
                     Image(ImageProvider(tile), context.getString(R.string.widget_preview_photo),
                         modifier = GlanceModifier.fillMaxSize().clickable(actionStartActivity(
@@ -178,7 +186,7 @@ class PhotoWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_loading) {
                 } else {
                     if (legacyHost) {
                         val fill = surface.getColor(context)
-                        val tile = remember(size, density, fill) { legacyWidgetTile(size, density, fill) }
+                        val tile = remember(size, pixels, fill) { legacyWidgetTile(size, pixels, fill) }
                         Image(ImageProvider(tile), null, modifier = GlanceModifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
                     }
                     val compactText = context.resources.configuration.fontScale >= 1.5f
@@ -209,22 +217,19 @@ class PhotoWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_loading) {
     }
 }
 
-private val PhotoBackdrop = Color(0xFF171717)
+private val PhotoBackdrop = Color(DEFAULT_FIT_BACKGROUND_COLOR)
 private fun Configuration.isDark() = uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
 
 // Before Android 12, Glance cannot clip RemoteViews. Draw the legacy outline into the bounded tile.
 private fun legacyWidgetTile(
-    size: DpSize, density: Float, backdrop: Color, bitmap: Bitmap? = null, fit: Boolean = false,
+    size: DpSize, pixels: IntSize, backdrop: Color, bitmap: Bitmap? = null, fit: Boolean = false,
 ): Bitmap {
-    val widthPx = (size.width.value * density).coerceAtLeast(1f)
-    val heightPx = (size.height.value * density).coerceAtLeast(1f)
-    val scale = minOf(1f, 640f / maxOf(widthPx, heightPx))
-    val width = (widthPx * scale).toInt().coerceAtLeast(1)
-    val height = (heightPx * scale).toInt().coerceAtLeast(1)
+    val (width, height) = pixels
     val tile = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(tile)
     val bounds = RectF(0f, 0f, width.toFloat(), height.toFloat())
-    val radius = minOf(20f * density * scale, minOf(width, height) / 2f)
+    val pixelsPerDp = width / size.width.value.coerceAtLeast(1f)
+    val radius = minOf(20f * pixelsPerDp, minOf(width, height) / 2f)
     val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply { color = backdrop.toArgb() }
     canvas.drawRoundRect(bounds, radius, radius, paint)
     if (bitmap != null) {
@@ -242,7 +247,7 @@ private fun legacyWidgetTile(
     return tile
 }
 
-internal suspend fun loadWidgetFrame(context: Context, widgetId: Int): WidgetFrame = withContext(Dispatchers.IO) {
+internal suspend fun loadWidgetFrame(context: Context, widgetId: Int, size: IntSize? = null): WidgetFrame = withContext(Dispatchers.IO) {
     val dao = WidgetDatabase.get(context).widgets()
     val record = dao.get(widgetId)
     val renderer = WidgetImageRenderer(context)
@@ -251,14 +256,14 @@ internal suspend fun loadWidgetFrame(context: Context, widgetId: Int): WidgetFra
         return@withContext WidgetFrame(dao.get(widgetId), null)
     }
     val uri = record?.currentUri ?: return@withContext WidgetFrame(record, null)
-    val bitmap = renderer.prepare(widgetId, uri, record.revision)
+    val bitmap = renderer.prepare(widgetId, uri, record.revision, fit = record.displayMode == "FIT", size = size)
     val latest = dao.get(widgetId)
     if (PhotoPermissionManager(context).status() != PhotoAccess.FULL) {
         bitmap?.recycle()
         WidgetController(context).reconcileForRender(widgetId)
         return@withContext WidgetFrame(dao.get(widgetId), null)
     }
-    if (latest?.revision != record.revision || latest.currentUri != uri) {
+    if (latest?.revision != record.revision || latest.currentUri != uri || latest.displayMode != record.displayMode) {
         bitmap?.recycle()
         return@withContext WidgetFrame(latest, null)
     }

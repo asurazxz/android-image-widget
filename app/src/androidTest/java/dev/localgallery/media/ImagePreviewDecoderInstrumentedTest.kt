@@ -88,6 +88,36 @@ class ImagePreviewDecoderInstrumentedTest {
     }
 
     @Test
+    fun cropKeepsEnoughSourcePixelsToFillASquareWidget() = runBlocking {
+        withFixtures { context, fixtures, decoder ->
+            val uri = addImage(context, fixtures, "wide.jpg", "image/jpeg", 1600, 800, Bitmap.CompressFormat.JPEG)
+
+            val cropped = requireNotNull(decoder.decode(uri, 700, 700, crop = true))
+            try {
+                assertEquals(700, cropped.width)
+                assertEquals(700, cropped.height)
+            } finally {
+                cropped.recycle()
+            }
+        }
+    }
+
+    @Test
+    fun screenPreviewKeepsMoreThanOneMegapixelWhenItFits() = runBlocking {
+        withFixtures { context, fixtures, decoder ->
+            val uri = addImage(context, fixtures, "screen.jpg", "image/jpeg", 1400, 1800, Bitmap.CompressFormat.JPEG)
+
+            val preview = requireNotNull(decoder.decodeForScreen(uri, 1400, 1800))
+            try {
+                assertEquals(1400, preview.width)
+                assertEquals(1800, preview.height)
+            } finally {
+                preview.recycle()
+            }
+        }
+    }
+
+    @Test
     fun extremeAspectRatiosStayInsideBoundsWithoutStretching() = runBlocking {
         withFixtures { context, fixtures, decoder ->
             val panorama = addImage(context, fixtures, "panorama.png", "image/png", 4096, 32, Bitmap.CompressFormat.PNG)

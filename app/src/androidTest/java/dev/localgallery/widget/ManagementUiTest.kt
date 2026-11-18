@@ -12,7 +12,7 @@ import android.provider.MediaStore
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -57,9 +57,9 @@ class ManagementUiTest {
             composeRule.onNodeWithTag("rotation-radio-30").assertIsSelected()
             scrollToText("Every N hours")
             composeRule.onNodeWithTag("rotation-radio-custom").performClick()
+            scrollToTag("custom-hours")
             composeRule.onNodeWithTag("custom-hours").performTextClearance()
             composeRule.onNodeWithTag("custom-hours").performTextInput("168")
-            scrollToTag("save-widget")
             composeRule.onNodeWithTag("save-widget").performClick()
             composeRule.waitUntil(20_000) {
                 runBlocking { fixture.dao.get(fixture.id)?.rotationMinutes == 10_080L }
@@ -68,7 +68,6 @@ class ManagementUiTest {
             openWidgetEditor(fixture.id)
             scrollToText("Automatic rotation")
             composeRule.onNodeWithTag("rotation-radio-0").performClick()
-            scrollToTag("save-widget")
             composeRule.onNodeWithTag("save-widget").performClick()
             composeRule.waitUntil(20_000) {
                 runBlocking { fixture.dao.get(fixture.id)?.rotationMinutes == 0L }
@@ -87,14 +86,13 @@ class ManagementUiTest {
             configuration = launchEdit(fixture.id)
             scrollToText("Every N hours")
             composeRule.onNodeWithTag("rotation-radio-custom").performClick()
+            scrollToTag("custom-hours")
             composeRule.onNodeWithTag("custom-hours").performTextClearance()
             composeRule.onNodeWithTag("custom-hours").performTextInput("1.5")
-            scrollToTag("save-widget")
             composeRule.onNodeWithTag("save-widget").assertIsNotEnabled()
             configuration.recreate()
-            scrollToText("Every N hours")
-            composeRule.onNodeWithTag("custom-hours").assertTextEquals("Custom hours (1–168)", "1.5")
-            scrollToTag("save-widget")
+            scrollToTag("custom-hours")
+            composeRule.onNodeWithTag("custom-hours").assertTextContains("1.5")
             composeRule.onNodeWithTag("save-widget").assertIsNotEnabled()
             composeRule.onNodeWithText("Cancel").performClick()
             assertEquals(1_440L, runBlocking { fixture.dao.get(fixture.id) }?.rotationMinutes)
@@ -115,7 +113,6 @@ class ManagementUiTest {
                 "This widget is no longer available. Return to the app and choose an existing widget to edit.",
             )
             composeRule.waitUntil(10_000) { runCatching { unavailable.assertExists() }.isSuccess }
-            scrollToTag("save-widget")
             composeRule.onNodeWithTag("save-widget").assertIsNotEnabled()
         } finally {
             configuration?.close()

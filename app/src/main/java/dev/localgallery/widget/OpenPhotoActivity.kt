@@ -30,11 +30,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
@@ -47,6 +50,7 @@ import dev.localgallery.permissions.PhotoPermissionManager
 import dev.localgallery.ui.GalleryActivityTheme
 import dev.localgallery.ui.GalleryAppearanceSettings
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -60,6 +64,7 @@ class OpenPhotoActivity : ComponentActivity() {
     private var displayedUri: String? = null
     private var displayedMime: String? = null
     private var preview by mutableStateOf<Preview?>(null)
+    private var previewSize by mutableStateOf(IntSize.Zero)
     private var busy by mutableStateOf(false)
     private var canShuffle by mutableStateOf(false)
     private var needsPermission by mutableStateOf(false)
@@ -84,7 +89,15 @@ class OpenPhotoActivity : ComponentActivity() {
                         Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Box(
+                            Modifier.weight(1f).fillMaxWidth().onSizeChanged { size ->
+                                if (size != previewSize) {
+                                    previewSize = size
+                                    if (preview != null) updatePreview()
+                                }
+                            },
+                            contentAlignment = Alignment.Center,
+                        ) {
                             val photoPreview = preview
                             when {
                                 photoPreview != null -> Image(
@@ -151,11 +164,26 @@ class OpenPhotoActivity : ComponentActivity() {
         val record = dao.get(widgetId)
         val uri = displayedUri ?: record?.currentUri
         val mime = if (displayedUri == null) record?.currentMime else displayedMime
-        val metrics = resources.displayMetrics
-        val bitmap = if (record != null && uri != null && isAttachedWidget(this, widgetId)) {
-            ImagePreviewDecoder(this).decode(uri.toUri(), metrics.widthPixels, metrics.heightPixels)
-        } else null
+        if (record == null || uri == null || !isAttachedWidget(this, widgetId) ||
+            permission.status() != PhotoAccess.FULL
+        ) {
+            showPhoto(record, uri, mime, null)
+            return
+        }
 
+        val decoder = ImagePreviewDecoder(this)
+        while (true) {
+            val size = snapshotFlow { previewSize }.first { it.width > 0 && it.height > 0 }
+            val decoded = decoder.decodeForScreen(uri.toUri(), size.width, size.height)
+            if (size == previewSize || decoded == null) {
+                showPhoto(record, uri, mime, decoded)
+                return
+            }
+            decoded.recycle()
+        }
+    }
+
+    private suspend fun showPhoto(record: WidgetRecord?, uri: String?, mime: String?, bitmap: Bitmap?) {
         needsPermission = permission.status() != PhotoAccess.FULL
         val attached = isAttachedWidget(this, widgetId)
         canShuffle = attached && record != null && !needsPermission

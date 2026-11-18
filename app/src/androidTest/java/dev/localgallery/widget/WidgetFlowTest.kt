@@ -202,11 +202,24 @@ class WidgetFlowTest {
             assertEquals(3, afterRapid.seen.size + afterRapid.remaining.size)
             assertNotNull(afterRapid.currentUri)
 
-            assertTrue(widgetController.configure(afterRapid.copy(displayMode = "FIT")))
+            val fitBackground = FitBackgroundColors.CREAM.argb
+            assertTrue(widgetController.configure(afterRapid.copy(displayMode = "FIT", fitBackgroundColor = fitBackground)))
             val fitRecord = awaitRecord(dao, hostId)
             assertEquals(afterRapid.currentUri, fitRecord.currentUri)
             awaitRenderedPhoto(hostScenario, fitRecord.currentUri!!, fixtureColors, ImageView.ScaleType.FIT_CENTER,
                 dao, hostId, "after Fit configuration")
+            assertEquals(fitBackground, fitRecord.fitBackgroundColor)
+            hostScenario.onActivity {
+                val view = requireNotNull(hostedView)
+                val rendered = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+                try {
+                    view.draw(android.graphics.Canvas(rendered))
+                    assertEquals("Fit displays the configured background above a wide photo",
+                        fitBackground, rendered.getPixel(rendered.width / 2, rendered.height / 16))
+                } finally {
+                    rendered.recycle()
+                }
+            }
             val cache = context.cacheDir.resolve("widget-previews").listFiles().orEmpty()
                 .filter { it.name.startsWith("$hostId-") }
             assertTrue("Per-widget preview cache should be bounded", cache.size <= 1)
@@ -261,8 +274,8 @@ class WidgetFlowTest {
                 val bitmap = (photo.drawable as? BitmapDrawable)?.bitmap
                 assertNotNull("$label resize should use a decoded photo bitmap", bitmap)
                 val actualBitmap = requireNotNull(bitmap)
-                assertTrue("$label photo bitmap width should be bounded", actualBitmap.width in 1..640)
-                assertTrue("$label photo bitmap height should be bounded", actualBitmap.height in 1..640)
+                assertTrue("$label photo bitmap width should be bounded", actualBitmap.width in 1..1440)
+                assertTrue("$label photo bitmap height should be bounded", actualBitmap.height in 1..1440)
                 assertTrue("$label photo bitmap should stay within the one-megapixel preview budget",
                     actualBitmap.width.toLong() * actualBitmap.height <= 1_000_000L)
 

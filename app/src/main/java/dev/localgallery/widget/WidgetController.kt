@@ -37,6 +37,7 @@ class WidgetController(context: Context, private val now: () -> Long = System::c
         if (permission.status() != PhotoAccess.FULL) { clearPhoto(request.appWidgetId); return@withLock false }
         if ((!request.entireGallery && request.selectedAlbums.isEmpty()) ||
             request.displayMode !in setOf("CROP", "FIT") ||
+            request.fitBackgroundColor ushr 24 != 0xFF ||
             !RotationPolicy.isValidInterval(request.rotationMinutes)) return@withLock false
         val previous = dao.get(request.appWidgetId)
         val sourceChanged = previous == null || previous.entireGallery != request.entireGallery ||
@@ -44,7 +45,7 @@ class WidgetController(context: Context, private val now: () -> Long = System::c
         val base = if (previous == null) request else previous.copy(
             entireGallery = request.entireGallery, selectedAlbums = request.selectedAlbums,
             displayMode = request.displayMode, preferredViewer = request.preferredViewer,
-            rotationMinutes = request.rotationMinutes,
+            rotationMinutes = request.rotationMinutes, fitBackgroundColor = request.fitBackgroundColor,
         )
         val candidates = pool(base)
         if (candidates.isEmpty()) return@withLock false
@@ -103,7 +104,9 @@ class WidgetController(context: Context, private val now: () -> Long = System::c
         if (!exists(id)) { remove(id); return@withLock }
         if (permission.status() != PhotoAccess.FULL) { clearPhoto(id, renderBeforeCancel = false); return@withLock }
         val available = try { pool(previous) } catch (_: SecurityException) { clearPhoto(id, renderBeforeCancel = false); return@withLock }
-        val bitmap = if (previous.currentUri in available) renderer.prepare(id, previous.currentUri!!, previous.revision) else null
+        val bitmap = if (previous.currentUri in available) {
+            renderer.prepare(id, previous.currentUri!!, previous.revision, fit = previous.displayMode == "FIT")
+        } else null
         if (bitmap == null) {
             val selected = select(previous, available)
             if (!exists(id)) { remove(id); return@withLock }
@@ -148,7 +151,8 @@ class WidgetController(context: Context, private val now: () -> Long = System::c
         repeat(minOf(available.size, 8)) {
             snapshot = ShuffleEngine.advance(available, snapshot)
             val media = candidates[snapshot.current] ?: return@repeat
-            val bitmap = renderer.prepare(record.appWidgetId, media.key, record.revision + 1)
+            val bitmap = renderer.prepare(record.appWidgetId, media.key, record.revision + 1,
+                fit = record.displayMode == "FIT")
             if (bitmap != null) {
                 bitmap.recycle()
                 return record.copy(currentUri = media.key, currentMime = media.mimeType,

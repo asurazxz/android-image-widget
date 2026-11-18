@@ -1,0 +1,111 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "ffbe809c81540283d2b311c3dbdd54d6",
+    "entities": [
+      {
+        "tableName": "widgets",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`appWidgetId` INTEGER NOT NULL, `entireGallery` INTEGER NOT NULL, `selectedAlbums` TEXT NOT NULL, `displayMode` TEXT NOT NULL, `rotationMinutes` INTEGER NOT NULL, `preferredViewer` TEXT, `currentUri` TEXT, `currentMime` TEXT, `remaining` TEXT NOT NULL, `seen` TEXT NOT NULL, `cycle` INTEGER NOT NULL, `revision` INTEGER NOT NULL, `nextDueAt` INTEGER, `lastAutomaticAt` INTEGER, `fitBackgroundColor` INTEGER NOT NULL DEFAULT -15263977, PRIMARY KEY(`appWidgetId`))",
+        "fields": [
+          {
+            "fieldPath": "appWidgetId",
+            "columnName": "appWidgetId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entireGallery",
+            "columnName": "entireGallery",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "selectedAlbums",
+            "columnName": "selectedAlbums",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayMode",
+            "columnName": "displayMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rotationMinutes",
+            "columnName": "rotationMinutes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "preferredViewer",
+            "columnName": "preferredViewer",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "currentUri",
+            "columnName": "currentUri",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "currentMime",
+            "columnName": "currentMime",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "remaining",
+            "columnName": "remaining",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seen",
+            "columnName": "seen",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cycle",
+            "columnName": "cycle",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revision",
+            "columnName": "revision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nextDueAt",
+            "columnName": "nextDueAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastAutomaticAt",
+            "columnName": "lastAutomaticAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "fitBackgroundColor",
+            "columnName": "fitBackgroundColor",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "-15263977"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "appWidgetId"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ffbe809c81540283d2b311c3dbdd54d6')"
+    ]
+  }
+}

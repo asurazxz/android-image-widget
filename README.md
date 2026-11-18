@@ -24,7 +24,7 @@
 - The home-screen widget shows the photo by itself. Tap the photo to open its preview.
 - The launcher picker shows a bundled sample photo before setup.
 - **Appearance** follows the system’s light or dark mode. Use wallpaper colors on Android 12 and later, or choose a custom color for app controls and widget recovery. Android 10–11 use Gallery Shuffle green by default. Displayed photos retain their original colors.
-- Choose **Fill / Crop** or **Fit**, and resize widgets within the limits of your launcher.
+- Choose **Fill** to crop to the widget or **Fit** to show the whole photo with a background color of your choice. Larger widgets use higher-resolution previews within Android's widget limits.
 - Choose manual-only rotation, 15 minutes, 30 minutes, every 24 hours, or a custom interval of 1–168 whole hours.
 - Works offline. No account, ads, analytics, telemetry, or photo uploads.
 
@@ -51,7 +51,7 @@ On Windows, use `.\gradlew.bat` with the same tasks. Connect an Android device o
 
 1. Long-press an empty area of the home screen and open the launcher's **Widgets** picker.
 2. Find Gallery Shuffle and place a widget.
-3. Grant full photo access, select the entire gallery or local albums, and choose display and rotation settings.
+3. Grant full photo access, choose the entire gallery or search for specific local albums, and set the display and rotation preferences. Tap **Save widget** when ready.
 4. Tap the photo to open its preview. Choose **Shuffle** to change the widget and preview photo while keeping the preview open, or choose **Open original** to open the file in the preferred or system-selected image viewer. Press Back to return home.
 
 Launcher menus and widget sizing vary by device. If the widget picker does not list the app, try opening the app once, then check the launcher's widget picker again.

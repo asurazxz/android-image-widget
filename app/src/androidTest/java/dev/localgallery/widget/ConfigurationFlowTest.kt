@@ -13,16 +13,21 @@ import android.graphics.Bitmap
 import android.os.Build
 import android.provider.MediaStore
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
 import dev.localgallery.data.WidgetDatabase
+import dev.localgallery.media.MediaRepository
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -53,7 +58,6 @@ class ConfigurationFlowTest {
             photo = addPhoto(context)
             val scenario = launchConfiguration(context, id)
             scenarioToClose = scenario
-            composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Save widget"))
             awaitSaveEnabled()
             composeRule.onNodeWithText("Save widget").performClick()
 
@@ -81,7 +85,6 @@ class ConfigurationFlowTest {
         try {
             val scenario = launchConfiguration(context, id)
             scenarioToClose = scenario
-            composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Cancel"))
             composeRule.onNodeWithText("Cancel").performClick()
 
             val result = scenario.result
@@ -91,6 +94,40 @@ class ConfigurationFlowTest {
             scenarioToClose?.close()
             kotlinx.coroutines.runBlocking { WidgetController(context).delete(id) }
             host.deleteAppWidgetId(id)
+        }
+    }
+
+    @Test
+    fun albumPickerReturnsToSetupAndFitColorIsSavedWithTheWidget() {
+        val (context, host, id) = bindWidget()
+        val photo = addPhoto(context)
+        try {
+            val album = runBlocking { MediaRepository(context).albums() }.single { it.name == "ConfigurationFlowTest" }
+            launchConfiguration(context, id).use { scenario ->
+                awaitSaveEnabled()
+                composeRule.onNodeWithTag("source-selected").performClick()
+                composeRule.onNodeWithTag("configuration-form").performScrollToNode(hasTestTag("choose-albums"))
+                composeRule.onNodeWithTag("choose-albums").performClick()
+                composeRule.onNodeWithTag("album-search").performTextInput("ConfigurationFlowTest")
+                composeRule.onNodeWithTag("album-picker-list").performScrollToNode(hasTestTag("album-toggle-${album.key}"))
+                composeRule.onNodeWithTag("album-toggle-${album.key}").performClick()
+                composeRule.onNodeWithTag("album-picker-done").performClick()
+                composeRule.onNodeWithTag("save-widget").assertIsDisplayed()
+                composeRule.onNodeWithTag("configuration-form").performScrollToNode(hasText("Fit"))
+                composeRule.onNodeWithText("Fit").performClick()
+                composeRule.onNodeWithTag("configuration-form").performScrollToNode(hasTestTag("fit-background-cream"))
+                composeRule.onNodeWithTag("fit-background-cream").performClick()
+                composeRule.onNodeWithTag("save-widget").performClick()
+                assertEquals(Activity.RESULT_OK, scenario.result.resultCode)
+                val saved = requireNotNull(runBlocking { WidgetDatabase.get(context).widgets().get(id) })
+                assertEquals(listOf(album.key), saved.selectedAlbums)
+                assertEquals("FIT", saved.displayMode)
+                assertEquals(FitBackgroundColors.CREAM.argb, saved.fitBackgroundColor)
+            }
+        } finally {
+            runBlocking { WidgetController(context).delete(id) }
+            host.deleteAppWidgetId(id)
+            context.contentResolver.delete(photo, null, null)
         }
     }
 
