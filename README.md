@@ -1,6 +1,18 @@
+<div align="center">
+
 # Gallery Shuffle
 
-Gallery Shuffle is an offline home-screen photo widget for **Android 10 and later**. Choose a local album or your entire gallery, then shuffle manually or on a schedule. **Fill** crops to the widget. **Fit** shows the full photo with a background color you choose.
+**An offline Android home-screen widget that shuffles photos from your local gallery.**
+
+[![Download APK](https://img.shields.io/badge/APK-Download-0f766e?logo=github&logoColor=white)](https://github.com/asurazxz/android-image-widget/releases/latest) ![Android 10 and later](https://img.shields.io/badge/Android-10%2B-22704f?logo=android&logoColor=white) ![Built with Kotlin](https://img.shields.io/badge/language-Kotlin-7f52ff?logo=kotlin&logoColor=white) [![MIT License](https://img.shields.io/badge/license-MIT-7655a6)](LICENSE)
+
+[Download](https://github.com/asurazxz/android-image-widget/releases/latest) · [Install on Android](#install-on-android) · [Contribute](#contribute)
+
+</div>
+
+---
+
+Choose local albums or your entire gallery, then shuffle manually or on a schedule. **Fill** crops to the widget. **Fit** shows the full photo with a background color you choose.
 
 ## Install on Android
 
