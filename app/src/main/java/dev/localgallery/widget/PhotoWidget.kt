@@ -58,7 +58,7 @@ import android.graphics.Bitmap
 
 internal val WidgetRenderGenerationKey = longPreferencesKey("render_generation")
 
-private data class RenderKey(val generation: Long, val size: IntSize)
+private data class RenderKey(val generation: Long, val size: IntSize, val revision: Long?)
 internal data class WidgetFrame(val record: WidgetRecord?, val bitmap: Bitmap?)
 private data class KeyedFrame(val key: RenderKey, val frame: WidgetFrame)
 
@@ -127,13 +127,17 @@ class PhotoWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_loading) {
         val options = AppWidgetManager.getInstance(context).getAppWidgetOptions(widgetId)
         val initialSize = widgetPreviewSize(context, options)
         val initialPreferences = getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
-        val initialKey = RenderKey(initialPreferences[WidgetRenderGenerationKey] ?: 0L, initialSize)
+        // Observe saved photo changes even when an active session's refresh event is delayed.
+        val revisions = WidgetDatabase.get(context).widgets().observeRevision(widgetId)
+        val initialRevision = revisions.first()
+        val initialKey = RenderKey(initialPreferences[WidgetRenderGenerationKey] ?: 0L, initialSize, initialRevision)
         val initialFrame = loadWidgetFrame(context, widgetId, initialSize)
         provideContent {
             val generation = currentState<Preferences>()[WidgetRenderGenerationKey] ?: 0L
+            val revision by revisions.collectAsState(initialRevision)
             val size = LocalSize.current
             val pixels = widgetPreviewSize(context, LocalAppWidgetOptions.current, size)
-            val key = RenderKey(generation, pixels)
+            val key = RenderKey(generation, pixels, revision)
             val loaded by produceState(
                 initialValue = KeyedFrame(initialKey, initialFrame),
                 key1 = key,

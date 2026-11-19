@@ -160,6 +160,19 @@ class WidgetFlowTest {
             awaitRenderedPhoto(hostScenario, renderedRecord.currentUri!!, fixtureColors, ImageView.ScaleType.CENTER_CROP,
                 dao, hostId, "initial configure")
             assertNoImageView(hostScenario, "Next random photo")
+
+            // Simulate a shuffle commit whose explicit Glance refresh is delayed.
+            val nextUri = renderedRecord.remaining.first()
+            val savedDuringRefreshDelay = renderedRecord.copy(
+                currentUri = nextUri,
+                remaining = renderedRecord.remaining.drop(1),
+                seen = renderedRecord.seen + nextUri,
+                revision = renderedRecord.revision + 1,
+            )
+            dao.put(savedDuringRefreshDelay)
+            awaitRenderedPhoto(hostScenario, nextUri, fixtureColors, ImageView.ScaleType.CENTER_CROP,
+                dao, hostId, "while the explicit refresh is delayed")
+
             // The photo itself opens the Compose preview. Shuffle must update the widget
             // selection while leaving that preview activity on screen.
             val beforePreview = awaitRecord(dao, hostId)
@@ -184,11 +197,9 @@ class WidgetFlowTest {
             assertNotNull(shuffledInPreview.currentUri)
             awaitPreviewColor(fixtureColors.getValue(shuffledInPreview.currentUri!!), "after preview shuffle")
             renderedRecord = shuffledInPreview
-            awaitRenderedPhoto(hostScenario, renderedRecord.currentUri!!, fixtureColors, ImageView.ScaleType.CENTER_CROP,
-                dao, hostId, "after preview shuffle")
             instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
-            instrumentation.waitForIdleSync()
-            awaitImageView(hostScenario, "Open photo preview")
+            awaitRenderedPhoto(hostScenario, renderedRecord.currentUri!!, fixtureColors, ImageView.ScaleType.CENTER_CROP,
+                dao, hostId, "after returning from preview shuffle")
 
             val beforeRefresh = awaitRecord(dao, hostId)
             widgetController.refresh(hostId)

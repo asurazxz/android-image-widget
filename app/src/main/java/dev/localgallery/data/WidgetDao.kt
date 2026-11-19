@@ -11,6 +11,9 @@ interface WidgetDao {
     @Query("SELECT * FROM widgets WHERE appWidgetId = :id LIMIT 1")
     suspend fun get(id: Int): WidgetRecord?
 
+    @Query("SELECT revision FROM widgets WHERE appWidgetId = :id")
+    fun observeRevision(id: Int): Flow<Long?>
+
     @Query("SELECT * FROM widgets ORDER BY appWidgetId")
     suspend fun all(): List<WidgetRecord>
 
